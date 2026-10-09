@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+
+# 生成的中间产物 / 成片不入库
+output/audio_chunks/
+output/seg_*.mp4
+output/aliyun_part_*.mp4
+output/aliyun_concat.txt
+output/did_talking_head.mp4
+output/final_output.mp4
+output/*.log
+output/*.txt
+output/frame_*.png
+output/aliyun_test*
+output/py_test*
+output/test_*
+
+# 本地打包物
+mac/
+digital_man_mac.zip
