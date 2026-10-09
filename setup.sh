@@ -28,19 +28,16 @@ else
 fi
 
 # ---------- 3. Python 依赖 ----------
-echo "[3/3] 安装 Python 依赖 (edge-tts / requests / pillow)..."
-python3 -m pip install --quiet edge-tts requests pillow
+echo "[3/3] 安装 Python 依赖 (edge-tts / pillow)..."
+python3 -m pip install --quiet edge-tts pillow
 
 python3 - <<'EOF'
-import edge_tts, requests, PIL
-print("依赖检查 OK: edge-tts / requests / pillow")
+import edge_tts, PIL
+print("依赖检查 OK: edge-tts / pillow")
 EOF
 
 echo ""
 echo "============================================"
 echo " 环境就绪! 生成视频:"
 echo "   ./run.sh"
-echo ""
-echo " 如需换 API key:"
-echo "   export ALIYUN_API_KEY=sk-你的key"
 echo "============================================"

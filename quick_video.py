@@ -50,11 +50,13 @@ BG_KEYS = {
     "flow": OUTPUT / "bg_flow.png",
 }
 
-SEGMENTS = [
-    (0,  5,  "cover", "AI 说接口全接好了? 一上线还是假数据"),
-    (5,  18, "pits",  "三个坑: mock残留 / 下拉写死 / 菜单写死"),
-    (18, 40, "flow",  "两轮验收: 扫描源码 + 抓真实请求 + 检查权限"),
-    (40, 50, "cover", "两轮都过才算接完 - AI 快, 验收不能省"),
+# end=None 表示自动取音频总时长
+SEGMENTS_TMPL = [
+    (0,  5,   "cover", "AI 说接口全接好了? 一上线还是假数据"),
+    (5,  18,  "pits",  "三个坑: mock残留 / 下拉写死 / 菜单写死"),
+    (18, 40,  "flow",  "两轮验收: 扫描源码 + 抓真实请求 + 检查权限"),
+    (40, 58,  "cover", "两轮都过才算接完 - AI 快, 验收不能省"),
+    (58, None, "cover", "关注我, 每天讲一个 AI 开发落地的工程细节"),
 ]
 
 SCRIPT = """大家好,
@@ -92,6 +94,17 @@ def ensure_backgrounds():
         gen_bg_main()
 
 ensure_backgrounds()
+
+
+def probe_duration(p):
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(p)],
+        capture_output=True, text=True)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return 0.0
 
 
 def ffmpeg_escape(text):
@@ -224,6 +237,8 @@ async def main():
                         help="阿里云输出分辨率 480P/720P")
     parser.add_argument("--skip-did", action="store_true",
                         help="跳过云端数字人, 用静态头像")
+    parser.add_argument("--no-avatar", action="store_true",
+                        help="纯内容模式: 不用头像, 只有背景+字幕")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -233,6 +248,12 @@ async def main():
     audio = await ensure_audio()
     if not audio:
         return
+
+    total_dur = probe_duration(audio)
+    segments = [
+        (s, e if e is not None else total_dur, bg, sub)
+        for (s, e, bg, sub) in SEGMENTS_TMPL
+    ]
 
     avatar_media = None
 
@@ -331,19 +352,19 @@ async def main():
                 avatar_media = AVATAR
         else:
             print("[D-ID] 无头像图, 跳过")
-    if not avatar_media and DID_AVATAR.exists() and DID_AVATAR.stat().st_size > 100000:
+    if not args.no_avatar and not avatar_media and DID_AVATAR.exists() and DID_AVATAR.stat().st_size > 100000:
         print(f"[数字人] 检测到已有视频: {DID_AVATAR}")
         avatar_media = DID_AVATAR
-    if not avatar_media and AVATAR.exists():
+    if not args.no_avatar and not avatar_media and AVATAR.exists():
         print(f"[头像] 静态模式: {AVATAR}")
         avatar_media = AVATAR
     elif not avatar_media:
         print("[头像] 未找到, 无头像模式")
 
     segment_files = []
-    print(f"\n[片段] 共 {len(SEGMENTS)} 段...")
-    for i, seg in enumerate(SEGMENTS):
-        print(f"  [{i+1}/{len(SEGMENTS)}] {seg[1]-seg[0]}s key={seg[2]}")
+    print(f"\n[片段] 共 {len(segments)} 段, 音频 {total_dur:.1f}s ...")
+    for i, seg in enumerate(segments):
+        print(f"  [{i+1}/{len(segments)}] {seg[1]-seg[0]}s key={seg[2]}")
         sf = build_segment_video(i, seg, avatar_media)
         segment_files.append(sf)
 
